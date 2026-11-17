@@ -1,0 +1,4 @@
+interface:
+  display_name: "昇腾 UB / UBoE 通信排障"
+  short_description: "从物理卡、交换机和拓扑到分层打流与日志关联，定位多机通信故障"
+  default_prompt: "使用 $ascend-link-triage 排查当前昇腾环境通信异常，先收集证据，再进行最小范围验证并给出根因与复测结果。"
