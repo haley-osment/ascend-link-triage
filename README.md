@@ -20,17 +20,17 @@
 ## 安装前准备
 
 1. 使用支持 `SKILL.md` 的 Agent。以下以 Codex 为例。
-2. 安装 Git，并确保能访问本仓库所在的 CodeHub 网络。
-3. 将本机 **SSH 公钥（`.pub` 文件）** 添加到 CodeHub 账号，并拥有仓库读取权限。不要上传私钥。
+2. 安装 Git，并确保能访问 GitHub。
+3. 以下示例使用 HTTPS 克隆；若仓库为私有仓库，需使用拥有读取权限的 GitHub 账号认证。
 4. 实际排障时，Agent 所在环境需要能够访问目标服务器；需要查交换机时还需相应访问权限。安装 skill 不会自动获得这些权限。
 
 可先验证仓库访问：
 
 ```bash
-git ls-remote ssh://git@codehub-dg-g.huawei.com:2222/s00893940/ascend-link-triage.git
+git ls-remote https://github.com/haley-osment/ascend-link-triage.git
 ```
 
-`Permission denied (publickey)` 表示需检查 SSH 密钥与账号授权；主机指纹问题按组织的 SSH 信任流程处理，不关闭主机校验。
+若访问失败，检查 GitHub 网络连接、仓库地址及账号权限。
 
 ## 安装
 
@@ -43,14 +43,14 @@ git ls-remote ssh://git@codehub-dg-g.huawei.com:2222/s00893940/ascend-link-triag
 ```powershell
 $skillRoot = Join-Path $env:USERPROFILE '.agents/skills'
 New-Item -ItemType Directory -Force -Path $skillRoot | Out-Null
-git clone ssh://git@codehub-dg-g.huawei.com:2222/s00893940/ascend-link-triage.git (Join-Path $skillRoot 'ascend-link-triage')
+git clone https://github.com/haley-osment/ascend-link-triage.git (Join-Path $skillRoot 'ascend-link-triage')
 ```
 
 **Linux / macOS：**
 
 ```bash
 mkdir -p "$HOME/.agents/skills"
-git clone ssh://git@codehub-dg-g.huawei.com:2222/s00893940/ascend-link-triage.git "$HOME/.agents/skills/ascend-link-triage"
+git clone https://github.com/haley-osment/ascend-link-triage.git "$HOME/.agents/skills/ascend-link-triage"
 ```
 
 如果该目录已经存在，不要覆盖，先确认是不是本仓库的已有安装，再按下文更新。
