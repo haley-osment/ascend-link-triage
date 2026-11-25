@@ -16,6 +16,8 @@ description: 排查昇腾多机 UB、UBoE、HCCL 与 HIXL 通信故障、KV 传�
 
 ## 按症状选择路径
 
+- 测 HIXL D2rH 在不同 block size 下的双机带宽，默认用[离线包与双端操作说明](references/hixl-d2rh.md)中的 C++ `hixl_comm_bench` 同步写。按请求选择协议，随包入口适用于 UBoE。逐档记录实际字节数、首轮、稳态及写校验状态。若现场不兼容，报告具体缺项；URMA 只能作为另行标注的底层对照。
+
 - 卡不可见、端口 down、邻居不符、某卡普遍失败：读 [硬件与设备入口](references/hardware-device.md)。
 - UBoE ping 丢包、建链超时、ARP 漂移、bond 成员异常：读 [交换机与 UBoE](references/switch-uboe.md)。
 - UB fullmesh 或集合通信启动失败、netLayer/topo 报错：读 [UB 与 HCCL 拓扑](references/ub-hccl-topology.md)。

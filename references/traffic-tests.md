@@ -28,6 +28,8 @@ read/write、单向/双向（历史 `-B`）、16KiB/1MiB、持续打印（历史
 
 ## HIXL：版本固定与数据校验
 
+双机 D2rH 分段带宽默认执行[离线 C++ benchmark](hixl-d2rh.md)。下面的 Python 示例用于对应版本的其他对照实验。
+
 复用现场已验证容器，确认Python/CANN/HIXL、设备映射及空闲HBM。历史 benchmark 固定源提交 `4f523ccd51a926ac9ec7af3ea7e116616b10ff0d`，来自 cann/hixl 的 `benchmarks/hixl_benchmark`；配套文件为 hixl_benchmark.py、bench_lib.py、acl_compat.py。不要只复制主脚本。读取随包 README/源码及 `--help`，记录来源、commit与文件hash。该历史版用过Python3.12和CANN9.2；其他版本先验证兼容性。
 
 下例为该历史接口的小规模 rD2D（读远端设备到本地设备）模板。容器两端先设置已确认存在的 CANN 环境，核对现有协议配置；实验用UBoE时曾显式设置：

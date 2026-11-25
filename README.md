@@ -74,6 +74,8 @@ git clone https://github.com/haley-osment/ascend-link-triage.git "$HOME/.agents/
 
 ## 如何使用
 
+测试双机 HIXL D2rH 分段带宽时，skill 自带适用于 Linux ARM64、CANN 9.2.1 参考环境的预编译工具，可离线解压。见[客户现场前提及操作说明](references/hixl-d2rh.md)。
+
 在 Codex 对话中使用 `$ascend-link-triage` 显式调用；`$` 前缀调用方式参见 [OpenAI Skills 使用示例](https://developers.openai.com/blog/eval-skills)。
 
 ### UBoE 建链超时
