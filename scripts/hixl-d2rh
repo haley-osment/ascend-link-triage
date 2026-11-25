@@ -1,38 +1,16 @@
 #!/usr/bin/env bash
-set -eo pipefail
-root=$(cd "$(dirname "$0")" && pwd -P)
-cd "$root"
-if [[ -z ${ASCEND_HOME_PATH:-} && -r /usr/local/Ascend/cann-9.2.1/set_env.sh ]]; then
-  source /usr/local/Ascend/cann-9.2.1/set_env.sh
+set -euo pipefail
+skill_dir=$(cd "$(dirname "$0")/.." && pwd -P)
+archive="$skill_dir/assets/hixl-d2rh-arm64-cann9.2.1.tar.gz"
+# Isolate each role invocation so a read-only skill installation works too.
+work=$(mktemp -d "${TMPDIR:-/tmp}/hixl-d2rh.XXXXXXXX")
+trap 'rm -rf -- "$work"' EXIT
+if [[ ! -f "$archive" ]]; then
+  cat "$archive".part00{1,2,3,4,5} > "$work/kit.tar.gz"
+  archive="$work/kit.tar.gz"
 fi
-export LD_LIBRARY_PATH="$root/lib:${ASCEND_HOME_PATH:-/usr/local/Ascend/cann-9.2.1}/lib64:/usr/local/Ascend/driver/lib64/driver:/usr/local/Ascend/driver/lib64/common${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
-export PYTHONDONTWRITEBYTECODE=1
-exe="$root/bin/hixl_comm_bench"
-launcher="$root/benchmarks/comm_benchmark/scripts/run_comm_benchmark.py"
-if [[ $(uname -m) != aarch64 ]]; then echo "Requires Linux aarch64" >&2; exit 1; fi
-if [[ ${1:-} == check ]]; then
-  sha256sum -c SHA256SUMS
-  deps=$(LC_ALL=C ldd -r "$exe" 2>&1)
-  printf '%s\n' "$deps"
-  if grep -Eq 'not found|undefined symbol' <<< "$deps" || ! grep -Fq "libcann_hixl.so => $root/lib/" <<< "$deps"; then exit 1; fi
-  python3 "$launcher" --help >/dev/null
-  # This build prints help and returns a non-zero parse status.
-  help_text=$("$exe" --help 2>&1) || :
-  grep -Fq 'Usage: hixl_comm_bench' <<< "$help_text"
-  exit 0
-fi
-if [[ $# != 5 || ! $1 =~ ^(target|initiator)$ || ! $3 =~ ^[0-9]+$ || ! $4 =~ ^[1-9][0-9]{0,7}$ || $5 != /* ]]; then
-  echo "Usage: $0 check | {target|initiator} TARGET_HOST_IP LOCAL_CARD BLOCK_BYTES ABSOLUTE_NEW_RESULT_DIR" >&2
-  exit 2
-fi
-block=$4
-goal=8388608
-if (( block > goal )); then echo "This short test supports blocks up to 8 MiB" >&2; exit 2; fi
-bytes=$((goal / block * block))
-mkdir -- "$5"
-role_args=(--target-host="$2")
-if [[ $1 == target ]]; then role_args=(--host="$2" --peer_wait_s=90); fi
-echo "role=$1 local_card=$3 block_bytes=$block transfer_bytes=$bytes descriptors=$((bytes/block)) loops=6"
-exec timeout -k 10s 180s python3 -u "$launcher" --bench_bin="$exe" --role="$1" "${role_args[@]}" \
-  --device_ids="$3" --direction=D2rH --transport=uboe --block_sizes="$block" \
-  --transfer_size="$bytes" --buffer_size=8M --loops=6 --skip_plot --output_dir="$5" > >(tee "$5/console.log") 2>&1
+expected=04f4e3f2750e6ff93908526e9e601b9c744c5dab6019c5a44a4b5042ddf8161f
+actual=$(sha256sum < "$archive")
+[[ ${actual%% *} == "$expected" ]] || { echo "Offline benchmark payload checksum mismatch" >&2; exit 1; }
+tar xzf "$archive" -C "$work"
+"$work/hixl-d2rh/run" "$@"

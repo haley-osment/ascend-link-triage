@@ -1,6 +1,6 @@
 # 双机 UBoE D2rH 分段带宽
 
-使用随 skill 提供的 `assets/hixl-d2rh-arm64-cann9.2.1.tar.gz`。测试通过 C++ 工具同步地从发起机的 NPU HBM 写到目标机的 Host DRAM。Python 只负责启动两端进程和整理报告。离线包可直接复制到两端，现场无需 Git、编译器、pip 或公网。
+默认调用 skill 自带的 `scripts/hixl-d2rh`。测试通过 C++ 工具同步地从发起机的 NPU HBM 写到目标机的 Host DRAM。Python 只负责启动两端进程和整理报告。离线包可直接复制到两端，现场无需 Git、编译器、pip 或公网。
 
 ## 现场提供
 
@@ -11,18 +11,10 @@
 
 ## 运行
 
-GitHub 版在 assets 下保存五个分片。下载整个仓库 ZIP 并解压后，在仓库根目录执行以下命令即可离线还原。已持有完整 tar.gz 的用户可直接跳到解压步骤。
+由 Agent 将本机已安装的 skill 目录通过现有连接复制或只读挂载到两台测试机（已部署则复用），在各端的 skill 根目录运行下列命令。入口自动从随附资源加载已编译工具。运行期间使用可执行的临时目录，如 /tmp 挂载为 noexec，请设置 TMPDIR 到可执行的可写目录。全程无需连接外部仓库或安装软件。
 
 ```bash
-cat assets/hixl-d2rh-arm64-cann9.2.1.tar.gz.part00{1,2,3,4,5} > hixl-d2rh-arm64-cann9.2.1.tar.gz
-echo '04f4e3f2750e6ff93908526e9e601b9c744c5dab6019c5a44a4b5042ddf8161f  hixl-d2rh-arm64-cann9.2.1.tar.gz' | sha256sum -c -
-```
-
-将校验成功的 tar.gz 复制到两端。两端各自进入一个新的工作目录，解压同一份包，执行：
-
-```bash
-tar xzf /path/to/hixl-d2rh-arm64-cann9.2.1.tar.gz
-./hixl-d2rh/run check
+bash scripts/hixl-d2rh check
 ```
 
 check 检查包内文件哈希、架构、动态库和重定位、启动器以及二进制帮助入口。若有 missing library、undefined symbol 或版本错误，保存输出，比对现场 CANN、驱动、libstdc++ 和 glibc；使用匹配环境或提供对应构建。
@@ -31,9 +23,9 @@ check 检查包内文件哈希、架构、动态库和重定位、启动器以�
 
 ```bash
 # 目标机
-./hixl-d2rh/run target "$TARGET_IP" "$CARD" "$BLOCK" "/tmp/hixl-target-$BLOCK-$(date +%s)"
+bash scripts/hixl-d2rh target "$TARGET_IP" "$CARD" "$BLOCK" "/tmp/hixl-target-$BLOCK-$(date +%s)"
 # 发起机
-./hixl-d2rh/run initiator "$TARGET_IP" "$CARD" "$BLOCK" "/tmp/hixl-initiator-$BLOCK-$(date +%s)"
+bash scripts/hixl-d2rh initiator "$TARGET_IP" "$CARD" "$BLOCK" "/tmp/hixl-initiator-$BLOCK-$(date +%s)"
 ```
 
 每次取一档，两端 BLOCK 相同。可依次测 54728、65536、131072、262144、1048576。每轮传输量为不超过 8 MiB 的最大整块倍数，启动时打印实际字节数与描述符数量。默认 6 轮，分别报告首轮和后五轮的中位数、范围与失败数。8 MiB 是短时对照配置，复测业务时按需调整两端 buffer_size、transfer_size 与超时。固定描述符数量的对照应另列一组。完成一档、两端进程退出后再启动下一档。超时后检查本次进程与端口是否释放。
