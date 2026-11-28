@@ -20,7 +20,7 @@ description: 排查昇腾多机 UB、UBoE、HCCL 与 HIXL 通信故障、KV 传�
 
 - 卡不可见、端口 down、邻居不符、某卡普遍失败：读 [硬件与设备入口](references/hardware-device.md)。
 - UBoE ping 丢包、建链超时、ARP 漂移、bond 成员异常：读 [交换机与 UBoE](references/switch-uboe.md)。
-- UB fullmesh 或集合通信启动失败、netLayer/topo 报错：读 [UB 与 HCCL 拓扑](references/ub-hccl-topology.md)。
+- 原生 UB `ub_ctp` 建链失败或需要 `ub_ping` 时，先按实际路径选 EID。框内 fullmesh 直连按源卡与对端卡配对，换对端时源 EID 也要重选；经出框口的 UB CLOS 按两端所属的同一通信平面选 EID。选址命令、集合通信启动失败和 netLayer/topo 排查见 [UB 与 HCCL 拓扑](references/ub-hccl-topology.md)。
 - ping 通但传输失败，或吞吐异常：读 [URMA/HIXL/业务分层验证](references/traffic-tests.md)。
 - 收集 plog、MSN 导出、Device 系统日志，区分首错与伴随错误：读 [日志关联](references/logs.md)。
 - 需要对照既往案例与判断边界：读 [案例与证据等级](references/cases.md)。
