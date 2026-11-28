@@ -1,37 +1,38 @@
 # 双机 UBoE D2rH 分段带宽
 
-默认调用 skill 自带的 `scripts/hixl-d2rh`。测试通过 C++ 工具同步地从发起机的 NPU HBM 写到目标机的 Host DRAM。Python 只负责启动两端进程和整理报告。离线包可直接复制到两端，现场无需 Git、编译器、pip 或公网。
+Agent 在两端调用 `bash scripts/hixl-d2rh`。入口从 skill 内的整包或分片解出预编译的 C++ `hixl_comm_bench`。发起机的 NPU HBM 通过 UBoE 同步写入目标机的 Host DRAM。Python 负责启动进程和生成报告。将完整 skill 复制到现场即可离线使用，无需 Git、编译器、pip 或外网。
 
 ## 现场提供
 
-- 两端均为 Linux aarch64，系统 glibc、libstdc++ 及 CANN 用户态与构建版本二进制兼容。参考运行镜像是 openEuler 24.03 LTS-SP4、glibc 2.38、Python 3.12.16、CANN 9.2.1。可复用满足这些条件的业务容器，给包只读挂载并提供单独可写的结果目录。
-- 兼容的昇腾 NPU、驱动和固件、可用测试卡及 UBoE 链路。两端的目标进程都需能访问各自的 NPU、通信资源、驱动库和现场拓扑。目标端控制 IP 可从发起端访问。此版单卡配置默认使用 16000 和 26000 两个端口，确认空闲可达。
-- Python 3（参考版本 3.12）、Bash、GNU coreutils（含 timeout、sha256sum）、tar 和 ldd。加载现场的 CANN 环境。自定义安装路径时在运行前设置 ASCEND_HOME_PATH 和所需驱动库搜索路径。
-- 包内提供同批构建的 hixl_comm_bench 与 libcann_hixl.so，以及启动、平台检测、报告脚本、上游许可证和声明。CANN 的 ACL、runtime、HCOMM、metadef、日志和 profiler 等库，以及驱动的 libascend_hal.so，由现场安装提供。具体加载路径见两端 check 输出。驱动与固件按现场版本配套。CPU 型号相同仍需逐端验证。
+- 已验证的 Host 环境为 Linux aarch64、openEuler 24.03 LTS-SP4、glibc 2.38、CANN 9.2.1 和 Ascend950DT。其他环境需要兼容的 CANN 用户态库（ACL、runtime、HCOMM 等）、libstdc++、NPU 驱动、固件和实际可用的 UBoE 链路。容器还需能访问两端各自的 NPU、驱动库、拓扑和控制网。
+- 现场提供 Python 3（参考 3.12）、Bash、GNU coreutils（含 timeout、sha256sum）、tar、gzip 和 ldd。默认入口能加载标准路径下的 CANN 9.2.1。自定义路径请先加载现场的 CANN 环境。TMPDIR（默认 /tmp）需可写、可执行，结果目录需可写。
+- 每端选一张空闲卡。单卡对默认使用目标机的 16000、26000 和发起机的 16001，请确认对应端口空闲且两端互通。
 
-## 运行
+## 包内依赖
 
-由 Agent 将本机已安装的 skill 目录通过现有连接复制或只读挂载到两台测试机（已部署则复用），在各端的 skill 根目录运行下列命令。入口自动从随附资源加载已编译工具。运行期间使用可执行的临时目录，如 /tmp 挂载为 noexec，请设置 TMPDIR 到可执行的可写目录。全程无需连接外部仓库或安装软件。
+包内有同批构建的 `bin/hixl_comm_bench`、`lib/libcann_hixl.so`、AICPU 算子描述 `libcann_hixl_kernel.json`、设备算子包 `cann-hixl-compat.tar.gz`、启动与报告脚本及上游许可。上游构建来源为 cann/hixl 提交 `885b294fadf2126263e7e9f4588edabd15a9715e`。
+
+启动时，若现场描述包含所需算子且存在配套 tar，入口优先使用现场内核（日志显示 `installed`）。否则它会在临时目录建立仅本次进程可见的 CANN 路径，引用现场其余文件，并放入随包的描述及内核（`bundled`）。此过程使用普通文件和符号链接，无需 mount、sudo 或写系统目录。设备访问权限和现场签名策略仍然适用。若设备拒绝内核签名，应使用现场认可的匹配签名包并保留报错。
+
+## 两端运行
+
+Agent 将同一版本的完整 skill 复制或只读挂载到两台机器，在两端的 skill 根目录预检。
 
 ```bash
 bash scripts/hixl-d2rh check
 ```
 
-check 检查包内文件哈希、架构、动态库和重定位、启动器以及二进制帮助入口。若有 missing library、undefined symbol 或版本错误，保存输出，比对现场 CANN、驱动、libstdc++ 和 glibc；使用匹配环境或提供对应构建。
+检查涵盖资源哈希、架构、动态库与重定位、启动器、设备算子描述和配套包。动态库缺项或 undefined symbol 请按输出核对现场 CANN 和驱动。检查通过后，用一组小流量传输确认设备能加载内核且两端能建链。
 
-两端各设置 TARGET_IP 为**目标机同一个控制 IP**，CARD 为**本机**可用卡号，BLOCK 为十进制字节数。先在目标机运行第一条，等待它监听，再在发起机运行第二条。结果目录需用各自可写文件系统的全新绝对路径。
+两端用同一个目标机控制 IP 和同一个 BLOCK（十进制字节），CARD 分别填本机卡号。结果目录使用各自可写的全新绝对路径。先在目标机运行并等 26000 开始监听，再在发起机运行。
 
 ```bash
-# 目标机
+# 目标机 Host
 bash scripts/hixl-d2rh target "$TARGET_IP" "$CARD" "$BLOCK" "/tmp/hixl-target-$BLOCK-$(date +%s)"
-# 发起机
+# 发起机 Host
 bash scripts/hixl-d2rh initiator "$TARGET_IP" "$CARD" "$BLOCK" "/tmp/hixl-initiator-$BLOCK-$(date +%s)"
 ```
 
-每次取一档，两端 BLOCK 相同。可依次测 54728、65536、131072、262144、1048576。每轮传输量为不超过 8 MiB 的最大整块倍数，启动时打印实际字节数与描述符数量。默认 6 轮，分别报告首轮和后五轮的中位数、范围与失败数。8 MiB 是短时对照配置，复测业务时按需调整两端 buffer_size、transfer_size 与超时。固定描述符数量的对照应另列一组。完成一档、两端进程退出后再启动下一档。超时后检查本次进程与端口是否释放。
+每档两端退出后再换下一档。可依次测 54728、65536、131072、262144、1048576 字节。两端缓冲区都是 8 MiB，各自收到相同的 transfer_size，取不超过 8 MiB 的最大整块倍数。预算 6 轮，报告首轮、后五轮中位数和范围、实际传输字节数与失败数。记录两端内核来源、console.log 及发起端逐轮 CSV。超时后核对本次进程和端口是否释放。
 
-核对 initiator CSV 中 benchmark=hixl_comm_bench、transport=uboe、direction=D2rH、initiator_memory=device、target_memory=host，结合实际配置和两端日志确认通路。带宽采用十进制 GB/s。保留两端 console.log 与逐轮 CSV，记录异常或未测档位。此版内置内容比对覆盖读方向，D2rH 写结果的 not_checked 应如实报告；需要证明写入正确时，另做目标端读回验证。
-
-## 版本与证据
-
-上游源码 cann/hixl 提交 `885b294fadf2126263e7e9f4588edabd15a9715e`。参考镜像 ID `sha256:1900f2e158a2887966daae07b04cddcdab939867936ca1a881a180083f386497`。历史双机 C++ CSV 覆盖 UBoE D2rH 的 64 KiB 和 128 KiB，写数据均未校验。归档中的二进制和同批库来自该环境的构建目录。归档已在参考镜像中断网解压并检查加载。客户端真实 D2rH 带宽以该环境的双端结果为准。
+CSV 应含 `benchmark=hixl_comm_bench`、`direction=D2rH`、`transport=uboe`、`initiator_memory=device` 和 `target_memory=host`。带宽单位为十进制 GB/s。此版写方向的内容校验状态是 `not_checked`。如需证明写入内容正确，还需在目标端读回比对。

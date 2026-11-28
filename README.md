@@ -4,7 +4,7 @@
 
 经验主要来自 A5 / 650 / 650E 环境的实际排查。核心流程是：**确认环境与映射 → 收集证据 → 最小卡对复现 → 正常/异常对照 → 修复与回归验证**。
 
-这是一套指令和参考文档，不是安装后自动运行的诊断程序；仓库不包含设备驱动、打流工具、账号密码或自动修改网络的脚本。
+仓库包含排障指令、参考文档和预编译的 HIXL D2rH 打流工具。现场提供匹配的 CANN、设备驱动和已配置的 UBoE 链路。
 
 ## 能排查什么
 
@@ -67,7 +67,8 @@ git clone https://github.com/haley-osment/ascend-link-triage.git "$HOME/.agents/
 ├── README.md
 ├── agents/openai.yaml
 ├── references/
-└── assets/evidence-template.md
+├── scripts/hixl-d2rh
+└── assets/  # 含离线工具整包或分片及取证模板
 ```
 
 安装后开启新会话并显式调用下面的 skill。若未被识别，检查技能目录、文件嵌套层级及客户端是否需要重新加载。其他 Agent 的安装路径以其自身文档为准。

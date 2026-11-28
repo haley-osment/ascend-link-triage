@@ -1,0 +1,3 @@
+scripts/hixl-d2rh text eol=lf
+assets/*.tar.gz binary
+assets/*.tar.gz.part* binary

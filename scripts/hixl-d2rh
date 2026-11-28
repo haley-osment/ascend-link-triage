@@ -9,7 +9,7 @@ if [[ ! -f "$archive" ]]; then
   cat "$archive".part00{1,2,3,4,5} > "$work/kit.tar.gz"
   archive="$work/kit.tar.gz"
 fi
-expected=04f4e3f2750e6ff93908526e9e601b9c744c5dab6019c5a44a4b5042ddf8161f
+expected=3b255179dbd63b632a943201713b08cb37d9c7c83f6e77263b75e975dcb4f9e3
 actual=$(sha256sum < "$archive")
 [[ ${actual%% *} == "$expected" ]] || { echo "Offline benchmark payload checksum mismatch" >&2; exit 1; }
 tar xzf "$archive" -C "$work"
